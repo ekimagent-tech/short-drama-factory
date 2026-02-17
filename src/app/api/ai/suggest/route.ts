@@ -65,9 +65,8 @@ export async function POST(request: NextRequest) {
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
     
-    if (!token || !verifyToken(token)) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    // Check if user is authenticated (optional - mock mode for unauthenticated users)
+    const isAuthenticated = token && verifyToken(token);
 
     const body = await request.json();
     const { type, context } = body;
@@ -77,9 +76,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate suggestion (try Ollama first, then fallback to mock)
+    // Works for both authenticated and unauthenticated users (mock mode)
     const suggestion = await callOllama(type, context);
 
-    return NextResponse.json({ suggestion });
+    return NextResponse.json({ suggestion, isAuthenticated: !!isAuthenticated });
   } catch (error) {
     console.error('Error generating suggestion:', error);
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });
