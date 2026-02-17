@@ -29,6 +29,12 @@ export default function Navbar() {
                 <Link href="/creative" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
                   創作
                 </Link>
+                <Link href="/characters" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
+                  角色
+                </Link>
+                <Link href="/settings" className="text-gray-700 hover:text-indigo-600 px-3 py-2 rounded-md text-sm font-medium">
+                  設定
+                </Link>
               </div>
             )}
           </div>
