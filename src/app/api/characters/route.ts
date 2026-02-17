@@ -10,7 +10,7 @@ export async function GET(request: AuthenticatedRequest) {
   }
 
   try {
-    const characters = db.prepare('SELECT * FROM characters WHERE userId = ? ORDER BY createdAt DESC').all(auth.userId);
+    const characters = db.getCharactersByUserId(auth.userId);
     return NextResponse.json({ characters });
   } catch (error) {
     console.error('Error fetching characters:', error);
@@ -27,24 +27,15 @@ export async function POST(request: AuthenticatedRequest) {
 
   try {
     const body = await request.json();
-    const characterId = `char-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const now = new Date().toISOString();
 
-    db.prepare(`
-      INSERT INTO characters (id, userId, name, description, imageUrl, role, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      characterId,
-      auth.userId,
-      body.name || '新角色',
-      body.description || '',
-      body.imageUrl || '',
-      body.role || 'supporting',
-      now,
-      now
-    );
-
-    const character = db.prepare('SELECT * FROM characters WHERE id = ?').get(characterId);
+    const character = db.createCharacter({
+      id: `char-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      userId: auth.userId,
+      name: body.name || '新角色',
+      description: body.description || '',
+      imageUrl: body.imageUrl || '',
+      role: body.role || 'supporting',
+    });
     
     return NextResponse.json({ character }, { status: 201 });
   } catch (error) {

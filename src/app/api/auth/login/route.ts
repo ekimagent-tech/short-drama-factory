@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user in database
-    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
+    const user = db.getUserByEmail(email);
 
     if (!user) {
       return NextResponse.json(

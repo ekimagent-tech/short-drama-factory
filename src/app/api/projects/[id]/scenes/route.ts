@@ -13,13 +13,13 @@ export async function GET(request: AuthenticatedRequest, { params }: { params: P
     const { id } = await params;
     
     // Check project ownership
-    const project = db.prepare('SELECT id FROM projects WHERE id = ? AND userId = ?').get(id, auth.userId);
+    const project = db.getProjectById(id);
     
-    if (!project) {
+    if (!project || project.userId !== auth.userId) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    const scenes = db.prepare('SELECT * FROM scenes WHERE projectId = ? ORDER BY orderNum').all(id);
+    const scenes = db.getScenesByProjectId(id);
     
     return NextResponse.json({ scenes });
   } catch (error) {
@@ -40,41 +40,31 @@ export async function POST(request: AuthenticatedRequest, { params }: { params: 
     const body = await request.json();
     
     // Check project ownership
-    const project = db.prepare('SELECT id FROM projects WHERE id = ? AND userId = ?').get(id, auth.userId);
+    const project = db.getProjectById(id);
     
-    if (!project) {
+    if (!project || project.userId !== auth.userId) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    const sceneId = `scene-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-    const now = new Date().toISOString();
-
     // Get max order
-    const maxOrder = db.prepare('SELECT MAX(orderNum) as max FROM scenes WHERE projectId = ?').get(id) as any;
-    const orderNum = (maxOrder?.max || 0) + 1;
+    const scenes = db.getScenesByProjectId(id);
+    const orderNum = scenes.length + 1;
 
-    db.prepare(`
-      INSERT INTO scenes (id, projectId, orderNum, duration, description, characterDescription, cameraMovement, dialogue, backgroundMusic, emotionTag, createdAt, updatedAt)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).run(
-      sceneId,
-      id,
+    const scene = db.createScene({
+      id: `scene-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      projectId: id,
       orderNum,
-      body.duration || 5,
-      body.description || '',
-      body.characterDescription || '',
-      body.cameraMovement || '',
-      body.dialogue || '',
-      body.backgroundMusic || '',
-      body.emotionTag || '',
-      now,
-      now
-    );
+      duration: body.duration || 5,
+      description: body.description || '',
+      characterDescription: body.characterDescription || '',
+      cameraMovement: body.cameraMovement || '',
+      dialogue: body.dialogue || '',
+      backgroundMusic: body.backgroundMusic || '',
+      emotionTag: body.emotionTag || '',
+    });
 
     // Update project timestamp
-    db.prepare('UPDATE projects SET updatedAt = ? WHERE id = ?').run(now, id);
-
-    const scene = db.prepare('SELECT * FROM scenes WHERE id = ?').get(sceneId);
+    db.updateProject(id, { updatedAt: new Date().toISOString() });
     
     return NextResponse.json({ scene }, { status: 201 });
   } catch (error) {

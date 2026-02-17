@@ -11,14 +11,14 @@ export async function GET(request: AuthenticatedRequest, { params }: { params: P
 
   try {
     const { id } = await params;
-    const project = db.prepare('SELECT * FROM projects WHERE id = ? AND userId = ?').get(id, auth.userId);
+    const project = db.getProjectById(id);
 
-    if (!project) {
+    if (!project || project.userId !== auth.userId) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
     // Get scenes for this project
-    const scenes = db.prepare('SELECT * FROM scenes WHERE projectId = ? ORDER BY orderNum').all(id);
+    const scenes = db.getScenesByProjectId(id);
 
     return NextResponse.json({ project, scenes });
   } catch (error) {
@@ -37,33 +37,23 @@ export async function PUT(request: AuthenticatedRequest, { params }: { params: P
   try {
     const { id } = await params;
     const body = await request.json();
-    const now = new Date().toISOString();
 
     // Check ownership
-    const existing = db.prepare('SELECT id FROM projects WHERE id = ? AND userId = ?').get(id, auth.userId);
+    const existing = db.getProjectById(id);
     
-    if (!existing) {
+    if (!existing || existing.userId !== auth.userId) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    db.prepare(`
-      UPDATE projects 
-      SET name = ?, description = ?, status = ?, theme = ?, outline = ?, script = ?, settings = ?, updatedAt = ?
-      WHERE id = ? AND userId = ?
-    `).run(
-      body.name,
-      body.description || '',
-      body.status || 'draft',
-      body.theme || '',
-      body.outline || '',
-      body.script || '',
-      JSON.stringify(body.settings || {}),
-      now,
-      id,
-      auth.userId
-    );
-
-    const project = db.prepare('SELECT * FROM projects WHERE id = ?').get(id);
+    const project = db.updateProject(id, {
+      name: body.name,
+      description: body.description,
+      status: body.status,
+      theme: body.theme,
+      outline: body.outline,
+      script: body.script,
+      settings: body.settings,
+    });
     
     return NextResponse.json({ project });
   } catch (error) {
@@ -83,17 +73,14 @@ export async function DELETE(request: AuthenticatedRequest, { params }: { params
     const { id } = await params;
 
     // Check ownership
-    const existing = db.prepare('SELECT id FROM projects WHERE id = ? AND userId = ?').get(id, auth.userId);
+    const existing = db.getProjectById(id);
     
-    if (!existing) {
+    if (!existing || existing.userId !== auth.userId) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    // Delete scenes first (cascade should handle this, but being explicit)
-    db.prepare('DELETE FROM scenes WHERE projectId = ?').run(id);
-    
     // Delete project
-    db.prepare('DELETE FROM projects WHERE id = ? AND userId = ?').run(id, auth.userId);
+    db.deleteProject(id);
     
     return NextResponse.json({ success: true });
   } catch (error) {

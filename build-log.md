@@ -64,5 +64,7 @@
 ### 🔗 Vercel Deployment
 https://short-drama-factory-local.vercel.app
 
-### ⚠️ Note
-GitHub push failed due to permission issue (403). Changes committed locally but not pushed.
+### ⚠️ Note (Updated 2026-02-17 02:55 UTC)
+- Fixed: Database now works on Vercel serverless using in-memory fallback
+- SQLite used locally, in-memory store used on Vercel (cold start resets data)
+- GitHub push successful ✅

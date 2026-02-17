@@ -16,13 +16,15 @@ export async function GET(
     const { id, sceneId } = await params;
     
     // Check project ownership
-    const project = db.prepare('SELECT id FROM projects WHERE id = ? AND userId = ?').get(id, auth.userId);
+    const project = db.getProjectById(id);
     
-    if (!project) {
+    if (!project || project.userId !== auth.userId) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    const scene = db.prepare('SELECT * FROM scenes WHERE id = ? AND projectId = ?').get(sceneId, id);
+    // Find scene from project scenes
+    const scenes = db.getScenesByProjectId(id);
+    const scene = scenes.find((s: any) => s.id === sceneId);
     
     if (!scene) {
       return NextResponse.json({ error: 'Scene not found' }, { status: 404 });
@@ -50,43 +52,29 @@ export async function PUT(
     const body = await request.json();
     
     // Check project ownership
-    const project = db.prepare('SELECT id FROM projects WHERE id = ? AND userId = ?').get(id, auth.userId);
+    const project = db.getProjectById(id);
     
-    if (!project) {
+    if (!project || project.userId !== auth.userId) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    // Check scene exists
-    const existing = db.prepare('SELECT id FROM scenes WHERE id = ? AND projectId = ?').get(sceneId, id);
+    const scene = db.updateScene(sceneId, {
+      orderNum: body.orderNum,
+      duration: body.duration,
+      description: body.description,
+      characterDescription: body.characterDescription,
+      cameraMovement: body.cameraMovement,
+      dialogue: body.dialogue,
+      backgroundMusic: body.backgroundMusic,
+      emotionTag: body.emotionTag,
+    });
     
-    if (!existing) {
+    if (!scene) {
       return NextResponse.json({ error: 'Scene not found' }, { status: 404 });
     }
 
-    const now = new Date().toISOString();
-
-    db.prepare(`
-      UPDATE scenes 
-      SET orderNum = ?, duration = ?, description = ?, characterDescription = ?, cameraMovement = ?, dialogue = ?, backgroundMusic = ?, emotionTag = ?, updatedAt = ?
-      WHERE id = ? AND projectId = ?
-    `).run(
-      body.orderNum,
-      body.duration || 5,
-      body.description || '',
-      body.characterDescription || '',
-      body.cameraMovement || '',
-      body.dialogue || '',
-      body.backgroundMusic || '',
-      body.emotionTag || '',
-      now,
-      sceneId,
-      id
-    );
-
     // Update project timestamp
-    db.prepare('UPDATE projects SET updatedAt = ? WHERE id = ?').run(now, id);
-
-    const scene = db.prepare('SELECT * FROM scenes WHERE id = ?').get(sceneId);
+    db.updateProject(id, { updatedAt: new Date().toISOString() });
     
     return NextResponse.json({ scene });
   } catch (error) {
@@ -109,26 +97,17 @@ export async function DELETE(
     const { id, sceneId } = await params;
     
     // Check project ownership
-    const project = db.prepare('SELECT id FROM projects WHERE id = ? AND userId = ?').get(id, auth.userId);
+    const project = db.getProjectById(id);
     
-    if (!project) {
+    if (!project || project.userId !== auth.userId) {
       return NextResponse.json({ error: 'Project not found' }, { status: 404 });
     }
 
-    // Check scene exists
-    const existing = db.prepare('SELECT id FROM scenes WHERE id = ? AND projectId = ?').get(sceneId, id);
-    
-    if (!existing) {
-      return NextResponse.json({ error: 'Scene not found' }, { status: 404 });
-    }
-
-    const now = new Date().toISOString();
-
     // Delete scene
-    db.prepare('DELETE FROM scenes WHERE id = ? AND projectId = ?').run(sceneId, id);
+    db.deleteScene(sceneId);
 
     // Update project timestamp
-    db.prepare('UPDATE projects SET updatedAt = ? WHERE id = ?').run(now, id);
+    db.updateProject(id, { updatedAt: new Date().toISOString() });
     
     return NextResponse.json({ success: true });
   } catch (error) {

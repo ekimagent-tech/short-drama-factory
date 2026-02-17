@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user already exists
-    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    const existingUser = db.getUserByEmail(email);
     
     if (existingUser) {
       return NextResponse.json(
@@ -37,10 +37,12 @@ export async function POST(request: NextRequest) {
     // Create user
     const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
     
-    db.prepare(`
-      INSERT INTO users (id, name, email, password)
-      VALUES (?, ?, ?, ?)
-    `).run(userId, name, email, hashedPassword);
+    db.createUser({
+      id: userId,
+      name,
+      email,
+      password: hashedPassword,
+    });
 
     // Generate JWT token
     const token = generateToken({
