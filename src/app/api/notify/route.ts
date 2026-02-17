@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { verifyToken } from '@/lib/auth';
+import nodemailer from 'nodemailer';
+import { readFileSync, existsSync } from 'fs';
+import { join } from 'path';
 
 interface Notification {
   type: 'generation_complete' | 'generation_failed';
@@ -11,15 +14,80 @@ interface Notification {
 // Store user email preferences (in-memory for MVP)
 const userEmails: Map<string, string> = new Map();
 
-// Send email notification (mock for MVP)
+// Gmail OAuth2 configuration
+const GOOGLE_CONFIG_PATH = join(process.cwd(), '../../config/google');
+
+interface GoogleCredentials {
+  installed: {
+    client_id: string;
+    client_secret: string;
+    redirect_uris: string[];
+  };
+}
+
+interface GoogleToken {
+  access_token: string;
+  refresh_token: string;
+  token_type: string;
+  expiry_date: number;
+}
+
+// Create OAuth2 transporter
+function createTransporter(): nodemailer.Transporter | null {
+  try {
+    const credsPath = join(GOOGLE_CONFIG_PATH, 'credentials.json');
+    const tokenPath = join(GOOGLE_CONFIG_PATH, 'token.json');
+    
+    if (!existsSync(credsPath) || !existsSync(tokenPath)) {
+      console.log('[EMAIL] Missing Google credentials, falling back to mock');
+      return null;
+    }
+    
+    const credentials: GoogleCredentials = JSON.parse(readFileSync(credsPath, 'utf-8'));
+    const token: GoogleToken = JSON.parse(readFileSync(tokenPath, 'utf-8'));
+    
+    return nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        type: 'OAuth2',
+        user: 'ekim.agent@gmail.com',
+        clientId: credentials.installed.client_id,
+        clientSecret: credentials.installed.client_secret,
+        refreshToken: token.refresh_token,
+      },
+    });
+  } catch (error) {
+    console.error('[EMAIL] Failed to create transporter:', error);
+    return null;
+  }
+}
+
+// Send email notification using Gmail
 async function sendEmail(to: string, subject: string, body: string): Promise<boolean> {
-  // In production, integrate with SendGrid, Resend, or other email service
-  console.log(`[EMAIL] To: ${to}`);
-  console.log(`[EMAIL] Subject: ${subject}`);
-  console.log(`[EMAIL] Body: ${body}`);
+  // Try real Gmail first
+  const transporter = createTransporter();
   
-  // Mock success
-  return true;
+  if (transporter) {
+    try {
+      await transporter.sendMail({
+        from: '"短劇工廠" <ekim.agent@gmail.com>',
+        to,
+        subject,
+        text: body,
+        html: body.replace(/\n/g, '<br>'),
+      });
+      console.log(`[EMAIL] Sent via Gmail to: ${to}`);
+      return true;
+    } catch (error) {
+      console.error('[EMAIL] Gmail send failed:', error);
+    }
+  }
+  
+  // Fallback: log to console (mock mode)
+  console.log(`[EMAIL MOCK] To: ${to}`);
+  console.log(`[EMAIL MOCK] Subject: ${subject}`);
+  console.log(`[EMAIL MOCK] Body: ${body}`);
+  return true; // Return success for mock fallback
 }
 
 // POST - Send notification

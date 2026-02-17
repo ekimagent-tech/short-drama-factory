@@ -110,3 +110,43 @@ https://short-drama-factory-local.vercel.app
 - Updated quality options: 360p (default), 480p, 720p
 - Settings page UI updated to reflect new options
 - Persisted in settings store
+
+### 2026-02-17 (AI Generation APIs)
+
+#### 1. Gmail Email Notifications (/api/notify)
+- Updated to use real Gmail via nodemailer + OAuth2
+- Uses credentials from `/home/node/.openclaw/workspace/config/google/`
+- Falls back to mock (console log) when Gmail unavailable
+- Supports:
+  - Generation complete notifications
+  - Generation failure notifications with error details
+
+#### 2. ComfyUI Image Generation (/api/generate/image)
+- Created new API route for AI image generation
+- Calls ComfyUI API at http://host.docker.internal:8188
+- Supports parameters:
+  - prompt (required)
+  - negativePrompt
+  - width, height (default: 512x768)
+  - steps (default: 20)
+  - cfg (default: 8)
+  - seed, model
+- Falls back to mock when ComfyUI unavailable
+- GET endpoint checks ComfyUI status
+
+#### 3. Video Generation (/api/generate/video)
+- Created new API route for AI video generation
+- Accepts images array + optional prompt
+- Supports parameters:
+  - images (required, array of image URLs)
+  - prompt (optional)
+  - duration (default: 5s)
+  - fps (default: 24)
+  - width, height (default: 512x768)
+- Checks for LTX_VIDEO_URL environment variable
+- Falls back to mock mode when not available
+- GET endpoint checks video service status
+
+#### Dependencies Added
+- nodemailer (for Gmail)
+- @types/nodemailer
