@@ -13,7 +13,9 @@ export default function CharactersPage() {
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [role, setRole] = useState<'protagonist' | 'supporting'>('protagonist');
   const [loading, setLoading] = useState(false);
+  const [isAILoading, setIsAILoading] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -21,29 +23,57 @@ export default function CharactersPage() {
     }
   }, [isAuthenticated, router]);
 
+  // AI Suggestion for character
+  const handleAISuggest = async () => {
+    setIsAILoading(true);
+    try {
+      const response = await fetch('/api/ai/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'character',
+          context: { name, description },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const suggestion = data.suggestion;
+        
+        if (suggestion.name) setName(suggestion.name);
+        if (suggestion.description) setDescription(suggestion.description);
+        if (suggestion.role) setRole(suggestion.role);
+      }
+    } catch (error) {
+      console.error('AI suggestion error:', error);
+    } finally {
+      setIsAILoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim() || !description.trim()) return;
 
     setLoading(true);
 
-    // Generate mock character
     const newCharacter: Character = {
       id: `char-${Date.now()}`,
       name: name.trim(),
       description: description.trim(),
+      role,
       imageUrl: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
       seed: Math.floor(Math.random() * 1000),
       createdAt: new Date().toISOString(),
     };
 
-    // Simulate API call
     setTimeout(() => {
       addCharacter(newCharacter);
       setLoading(false);
       setShowForm(false);
       setName('');
       setDescription('');
+      setRole('protagonist');
     }, 500);
   };
 
@@ -69,7 +99,16 @@ export default function CharactersPage() {
       {showForm && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-md">
-            <h2 className="text-xl font-semibold mb-4">新增角色</h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">新增角色</h2>
+              <button
+                onClick={handleAISuggest}
+                disabled={isAILoading}
+                className="px-3 py-1 bg-purple-600 text-white text-sm rounded-md hover:bg-purple-700 disabled:opacity-50"
+              >
+                {isAILoading ? 'AI 建議中...' : '✨ AI建議'}
+              </button>
+            </div>
             <form onSubmit={handleSubmit}>
               <div className="space-y-4">
                 <div>
@@ -97,6 +136,19 @@ export default function CharactersPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
                     placeholder="描述角色的外型和性格..."
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    角色類型
+                  </label>
+                  <select
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as 'protagonist' | 'supporting')}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-indigo-500"
+                  >
+                    <option value="protagonist">主角</option>
+                    <option value="supporting">配角</option>
+                  </select>
                 </div>
               </div>
               <div className="flex justify-end space-x-3 mt-6">
@@ -139,7 +191,16 @@ export default function CharactersPage() {
                 )}
               </div>
               <div className="p-4">
-                <h3 className="font-semibold text-lg">{character.name}</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="font-semibold text-lg">{character.name}</h3>
+                  <span className={`text-xs px-2 py-1 rounded ${
+                    character.role === 'protagonist' 
+                      ? 'bg-indigo-100 text-indigo-800' 
+                      : 'bg-gray-100 text-gray-800'
+                  }`}>
+                    {character.role === 'protagonist' ? '主角' : '配角'}
+                  </span>
+                </div>
                 <p className="text-gray-500 text-sm mt-1 line-clamp-2">{character.description}</p>
                 <div className="flex justify-end mt-4">
                   <button

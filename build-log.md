@@ -68,3 +68,45 @@ https://short-drama-factory-local.vercel.app
 - Fixed: Database now works on Vercel serverless using in-memory fallback
 - SQLite used locally, in-memory store used on Vercel (cold start resets data)
 - GitHub push successful ✅
+
+## 2026-02-17 (Feature Update)
+
+### ✅ New Features Implemented
+
+#### 1. AI Suggestion Generation (一鍵AI建議)
+- Created `/api/ai/suggest` API route with Ollama integration
+- Added "一鍵AI建議" buttons to:
+  - **Project Detail** - Auto-fill project name & description
+  - **New Project** - AI suggestion when creating project
+  - **Scene Editor** - Auto-fill: description, character, camera, dialogue, BGM, emotion
+  - **Character Page** - AI suggestion for name, description, role (protagonist/supporting)
+- Fallback to mock responses when Ollama unavailable
+
+#### 2. Generation Queue (生成隊列)
+- Created `/api/queue` API route
+- In-memory queue system with status tracking
+- Queue status visible in project detail page
+- Cancel pending tasks functionality
+- Status: pending/processing/completed/failed
+
+#### 3. Download Functionality (下載功能)
+- Added download buttons in project detail:
+  - **Script (TXT)** - Download script as plain text
+  - **Scenes (JSON)** - Download all scenes as JSON
+  - **Project (ZIP)** - Download complete project as ZIP using JSZip
+- Client-side generation using Blob API
+
+#### 4. Email Notifications (郵件通知)
+- Created `/api/notify` API route
+- Added email settings:
+  - Email input field in settings page
+  - Email notifications toggle
+- Send notifications on:
+  - Generation completes
+  - Generation fails (with error details)
+- Mock implementation (logs to console)
+
+#### 5. Video Quality Settings
+- Updated quality options: 360p (default), 480p, 720p
+- Settings page UI updated to reflect new options
+- Persisted in settings store

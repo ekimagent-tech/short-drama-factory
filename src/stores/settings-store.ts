@@ -6,9 +6,11 @@ export interface ProjectSettings {
   sceneDurationMax: number;
   aspectRatio: '9:16' | '16:9' | '1:1' | '4:3';
   totalLength: '30s' | '60s' | '90s';
-  quality: '720p' | '1080p' | '4K';
+  quality: '360p' | '480p' | '720p';
   frameRate: 24 | 30 | 60;
   stylePreset: string;
+  email: string;
+  emailNotifications: boolean;
 }
 
 interface SettingsState {
@@ -21,9 +23,11 @@ const defaultSettings: ProjectSettings = {
   sceneDurationMax: 10,
   aspectRatio: '9:16',
   totalLength: '60s',
-  quality: '1080p',
+  quality: '360p',
   frameRate: 30,
   stylePreset: '寫實',
+  email: '',
+  emailNotifications: false,
 };
 
 export const useSettingsStore = create<SettingsState>()(

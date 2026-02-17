@@ -7,7 +7,7 @@ import { useAuthStore } from '@/stores/auth-store';
 
 const aspectRatios = ['9:16', '16:9', '1:1', '4:3'] as const;
 const totalLengths = ['30s', '60s', '90s'] as const;
-const qualities = ['720p', '1080p', '4K'] as const;
+const qualities = ['360p', '480p', '720p'] as const;
 const frameRates = [24, 30, 60] as const;
 const stylePresets = ['寫實', '浪漫', '懸疑', '喜劇', '科幻', '古裝'];
 
@@ -31,6 +31,16 @@ export default function SettingsPage() {
 
   const handleSave = () => {
     updateSettings(localSettings);
+    
+    // Save email preference to API
+    if (localSettings.email) {
+      fetch('/api/notify', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: localSettings.email }),
+      }).catch(console.error);
+    }
+    
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
@@ -41,9 +51,11 @@ export default function SettingsPage() {
       sceneDurationMax: 10,
       aspectRatio: '9:16',
       totalLength: '60s',
-      quality: '1080p',
+      quality: '360p',
       frameRate: 30,
       stylePreset: '寫實',
+      email: '',
+      emailNotifications: false,
     });
   };
 
@@ -186,6 +198,47 @@ export default function SettingsPage() {
               <option key={style} value={style}>{style}</option>
             ))}
           </select>
+        </div>
+
+        {/* Email Notifications Section */}
+        <div className="pt-4 border-t">
+          <h3 className="text-lg font-medium text-gray-900 mb-4">郵件通知</h3>
+          
+          {/* Email Input */}
+          <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              郵件地址
+            </label>
+            <input
+              type="email"
+              value={localSettings.email}
+              onChange={(e) => setLocalSettings({ ...localSettings, email: e.target.value })}
+              placeholder="your@email.com"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            />
+          </div>
+
+          {/* Email Notifications Toggle */}
+          <div className="flex items-center justify-between">
+            <label className="text-sm font-medium text-gray-700">
+              啟用郵件通知
+            </label>
+            <button
+              onClick={() => setLocalSettings({ ...localSettings, emailNotifications: !localSettings.emailNotifications })}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                localSettings.emailNotifications ? 'bg-indigo-600' : 'bg-gray-200'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                  localSettings.emailNotifications ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
+          <p className="text-xs text-gray-500 mt-2">
+            當 AI 生成完成或失敗時發送郵件通知
+          </p>
         </div>
 
         {/* Actions */}

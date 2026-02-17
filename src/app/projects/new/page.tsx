@@ -10,6 +10,34 @@ export default function NewProjectPage() {
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isAILoading, setIsAILoading] = useState(false);
+
+  // AI Suggestion for project
+  const handleAISuggest = async () => {
+    setIsAILoading(true);
+    try {
+      const response = await fetch('/api/ai/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'project',
+          context: { name, description },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const suggestion = data.suggestion;
+        
+        if (suggestion.name) setName(suggestion.name);
+        if (suggestion.description) setDescription(suggestion.description);
+      }
+    } catch (error) {
+      console.error('AI suggestion error:', error);
+    } finally {
+      setIsAILoading(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,7 +58,16 @@ export default function NewProjectPage() {
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold text-gray-900 mb-6">新建項目</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-900">新建項目</h1>
+        <button
+          onClick={handleAISuggest}
+          disabled={isAILoading}
+          className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+        >
+          {isAILoading ? 'AI 建議中...' : '✨ 一鍵AI建議'}
+        </button>
+      </div>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div>
           <label htmlFor="name" className="block text-sm font-medium text-gray-700">

@@ -15,6 +15,7 @@ export default function SceneEditorPage() {
   const [project, setProject] = useState<any>(null);
   const [scene, setScene] = useState<Scene | null>(null);
   const [isNew, setIsNew] = useState(false);
+  const [isAILoading, setIsAILoading] = useState(false);
   
   // Form state
   const [duration, setDuration] = useState(5);
@@ -39,7 +40,6 @@ export default function SceneEditorPage() {
     const projectId = params.id as string;
     const sceneId = params.sceneId as string;
 
-    // Get project from store or localStorage
     let foundProject = projects.find(p => p.id === projectId);
     if (!foundProject) {
       const stored = localStorage.getItem('project-store');
@@ -54,7 +54,6 @@ export default function SceneEditorPage() {
       
       if (sceneId === 'new') {
         setIsNew(true);
-        // Initialize with defaults
         setDescription('新場景描述');
         setCharacterDescription('');
         setCameraMovement('固定鏡頭');
@@ -77,6 +76,44 @@ export default function SceneEditorPage() {
       }
     }
   }, [params.id, params.sceneId, projects, isAuthenticated, router]);
+
+  // AI Suggestion for scene
+  const handleAISuggest = async () => {
+    if (!project) return;
+    
+    setIsAILoading(true);
+    try {
+      const response = await fetch('/api/ai/suggest', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          type: 'scene',
+          context: {
+            projectName: project.name,
+            projectDescription: project.description,
+            script: project.script,
+            existingDescription: description,
+          },
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const suggestion = data.suggestion;
+        
+        if (suggestion.description) setDescription(suggestion.description);
+        if (suggestion.characterDescription) setCharacterDescription(suggestion.characterDescription);
+        if (suggestion.cameraMovement) setCameraMovement(suggestion.cameraMovement);
+        if (suggestion.dialogue) setDialogue(suggestion.dialogue);
+        if (suggestion.backgroundMusic) setBackgroundMusic(suggestion.backgroundMusic);
+        if (suggestion.emotionTag) setEmotionTag(suggestion.emotionTag);
+      }
+    } catch (error) {
+      console.error('AI suggestion error:', error);
+    } finally {
+      setIsAILoading(false);
+    }
+  };
 
   const handleSave = () => {
     if (!project) return;
@@ -134,9 +171,18 @@ export default function SceneEditorPage() {
       </div>
 
       <div className="bg-white rounded-lg shadow p-6">
-        <h1 className="text-2xl font-bold text-gray-900 mb-6">
-          {isNew ? '新增場景' : '編輯場景'}
-        </h1>
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {isNew ? '新增場景' : '編輯場景'}
+          </h1>
+          <button
+            onClick={handleAISuggest}
+            disabled={isAILoading}
+            className="px-4 py-2 bg-purple-600 text-white rounded-md hover:bg-purple-700 disabled:opacity-50"
+          >
+            {isAILoading ? 'AI 建議中...' : '✨ 一鍵AI建議'}
+          </button>
+        </div>
 
         <div className="space-y-6">
           {/* Duration */}

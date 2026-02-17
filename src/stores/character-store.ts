@@ -5,6 +5,7 @@ export interface Character {
   id: string;
   name: string;
   description: string;
+  role?: 'protagonist' | 'supporting';
   imageUrl?: string;
   seed?: number;
   createdAt: string;
