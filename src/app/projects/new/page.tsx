@@ -3,10 +3,12 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useProjectStore, Project } from '@/stores/project-store';
+import { useAuthStore } from '@/stores/auth-store';
 
 export default function NewProjectPage() {
   const router = useRouter();
   const { addProject } = useProjectStore();
+  const { token } = useAuthStore();
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [loading, setLoading] = useState(false);
