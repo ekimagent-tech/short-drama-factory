@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/auth-store';
 export default function CharactersPage() {
   const router = useRouter();
   const { characters, addCharacter, deleteCharacter } = useCharacterStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
   
   const [showForm, setShowForm] = useState(false);
   const [name, setName] = useState('');
@@ -29,7 +29,10 @@ export default function CharactersPage() {
     try {
       const response = await fetch('/api/ai/suggest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           type: 'character',
           context: { name, description },

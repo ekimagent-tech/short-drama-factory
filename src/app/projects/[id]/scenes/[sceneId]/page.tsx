@@ -10,7 +10,7 @@ export default function SceneEditorPage() {
   const router = useRouter();
   const params = useParams();
   const { projects, updateProject } = useProjectStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
   
   const [project, setProject] = useState<any>(null);
   const [scene, setScene] = useState<Scene | null>(null);
@@ -79,13 +79,16 @@ export default function SceneEditorPage() {
 
   // AI Suggestion for scene
   const handleAISuggest = async () => {
-    if (!project) return;
+    if (!project || !token) return;
     
     setIsAILoading(true);
     try {
       const response = await fetch('/api/ai/suggest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           type: 'scene',
           context: {

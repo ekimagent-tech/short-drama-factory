@@ -14,7 +14,7 @@ const stylePresets = ['寫實', '浪漫', '懸疑', '喜劇', '科幻', '古裝'
 export default function SettingsPage() {
   const router = useRouter();
   const { settings, updateSettings } = useSettingsStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
   
   const [localSettings, setLocalSettings] = useState<ProjectSettings>(settings);
   const [saved, setSaved] = useState(false);
@@ -33,10 +33,13 @@ export default function SettingsPage() {
     updateSettings(localSettings);
     
     // Save email preference to API
-    if (localSettings.email) {
+    if (localSettings.email && token) {
       fetch('/api/notify', {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ email: localSettings.email }),
       }).catch(console.error);
     }

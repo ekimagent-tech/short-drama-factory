@@ -18,7 +18,10 @@ export default function NewProjectPage() {
     try {
       const response = await fetch('/api/ai/suggest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           type: 'project',
           context: { name, description },

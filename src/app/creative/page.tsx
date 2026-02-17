@@ -15,7 +15,7 @@ interface Outline {
 export default function CreativePage() {
   const router = useRouter();
   const { addProject } = useProjectStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
   
   const [step, setStep] = useState(1);
   const [theme, setTheme] = useState('');
@@ -34,7 +34,7 @@ export default function CreativePage() {
 
   // Generate outlines using AI (mock for now, can integrate with Ollama)
   const generateOutlines = async () => {
-    if (!theme.trim()) return;
+    if (!theme.trim() || !token) return;
     
     setLoading(true);
     
@@ -42,7 +42,10 @@ export default function CreativePage() {
       // Try to call AI via local API
       const response = await fetch('/api/creative/generate-outlines', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ theme }),
       });
 
@@ -106,14 +109,17 @@ export default function CreativePage() {
 
   // Generate script from selected outline
   const generateScript = async () => {
-    if (!selectedOutline) return;
+    if (!selectedOutline || !token) return;
     
     setLoading(true);
     
     try {
       const response = await fetch('/api/creative/generate-script', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ outline: selectedOutline }),
       });
 
@@ -175,14 +181,17 @@ export default function CreativePage() {
 
   // Generate scenes from script
   const generateScenes = async () => {
-    if (!script.trim()) return;
+    if (!script.trim() || !token) return;
     
     setLoading(true);
     
     try {
       const response = await fetch('/api/creative/generate-scenes', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({ script }),
       });
 

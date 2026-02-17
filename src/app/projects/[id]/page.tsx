@@ -13,7 +13,7 @@ export default function ProjectDetailPage() {
   const router = useRouter();
   const params = useParams();
   const { projects, updateProject, deleteProject } = useProjectStore();
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, token } = useAuthStore();
   const { tasks, setTasks, addTask, updateTask, setIsPolling } = useQueueStore();
   
   const [project, setProject] = useState<Project | null>(null);
@@ -25,8 +25,11 @@ export default function ProjectDetailPage() {
 
   // Fetch queue status
   const fetchQueue = async () => {
+    if (!token) return;
     try {
-      const response = await fetch('/api/queue');
+      const response = await fetch('/api/queue', {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
       if (response.ok) {
         const data = await response.json();
         setTasks(data.queue);
@@ -101,7 +104,10 @@ export default function ProjectDetailPage() {
     try {
       const response = await fetch('/api/ai/suggest', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           type: 'project',
           context: { theme: project.theme, description: project.description },
@@ -198,9 +204,11 @@ export default function ProjectDetailPage() {
 
   // Cancel queue task
   const cancelTask = async (taskId: string) => {
+    if (!token) return;
     try {
       const response = await fetch(`/api/queue?id=${taskId}`, {
         method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
       });
       if (response.ok) {
         fetchQueue();
