@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import db from '@/lib/db';
+import { generateToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,16 +14,41 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mock login - in production, validate against database
-    const user = {
-      id: 'user-1',
-      name: 'User',
-      email,
-    };
+    // Find user in database
+    const user = db.prepare('SELECT * FROM users WHERE email = ?').get(email) as any;
 
-    const token = `mock-jwt-token-${Date.now()}`;
+    if (!user) {
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
 
-    return NextResponse.json({ user, token });
+    // Verify password
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    
+    if (!isValidPassword) {
+      return NextResponse.json(
+        { error: 'Invalid email or password' },
+        { status: 401 }
+      );
+    }
+
+    // Generate JWT token
+    const token = generateToken({
+      userId: user.id,
+      email: user.email,
+      name: user.name,
+    });
+
+    return NextResponse.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+      },
+      token,
+    });
   } catch (error) {
     console.error('Login error:', error);
     return NextResponse.json(

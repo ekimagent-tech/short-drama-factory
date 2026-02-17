@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
+import bcrypt from 'bcryptjs';
+import db from '@/lib/db';
+import { generateToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,16 +21,42 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Mock registration - in production, save to database
-    const user = {
-      id: `user-${Date.now()}`,
-      name,
+    // Check if user already exists
+    const existingUser = db.prepare('SELECT id FROM users WHERE email = ?').get(email);
+    
+    if (existingUser) {
+      return NextResponse.json(
+        { error: 'Email already registered' },
+        { status: 400 }
+      );
+    }
+
+    // Hash password
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    // Create user
+    const userId = `user-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
+    
+    db.prepare(`
+      INSERT INTO users (id, name, email, password)
+      VALUES (?, ?, ?, ?)
+    `).run(userId, name, email, hashedPassword);
+
+    // Generate JWT token
+    const token = generateToken({
+      userId,
       email,
-    };
+      name,
+    });
 
-    const token = `mock-jwt-token-${Date.now()}`;
-
-    return NextResponse.json({ user, token });
+    return NextResponse.json({
+      user: {
+        id: userId,
+        name,
+        email,
+      },
+      token,
+    }, { status: 201 });
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json(

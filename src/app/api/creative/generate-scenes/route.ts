@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { authMiddleware, AuthenticatedRequest } from '@/lib/middleware';
 
 interface Scene {
   id: string;
@@ -12,7 +13,13 @@ interface Scene {
   emotionTag: string;
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: AuthenticatedRequest) {
+  // Auth check
+  const auth = authMiddleware(request);
+  if (!auth) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
     const { script } = await request.json();
 
@@ -34,7 +41,7 @@ export async function POST(request: NextRequest) {
         scenes.push({
           id: `scene-${Date.now()}-${index}`,
           order: index + 1,
-          duration: 5 + Math.floor(Math.random() * 5), // 5-10 seconds
+          duration: 5 + Math.floor(Math.random() * 5),
           description: sceneMatch[2].trim(),
           characterDescription: '主要角色登場',
           cameraMovement: cameraTypes[index % cameraTypes.length],
